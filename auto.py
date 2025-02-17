@@ -43,9 +43,9 @@ def make_unique(dest, name):
 def move_file(dest, entry, name):
     if exists(f"{dest}/{name}"):
         unique_name = make_unique(dest, name)
-        oldName = join(dest, name)
-        newName = join(dest, unique_name)
-        rename(oldName, newName)
+        old_name = join(dest, name)
+        new_name = join(dest, unique_name)
+        rename(old_name, new_name)
     move(entry, dest)
 
 class MyEventHandler(LoggingEventHandler):
@@ -76,18 +76,37 @@ class MyEventHandler(LoggingEventHandler):
                     if dest_dir:
                         move_file(dest_dir, os.path.join(source_dir, entry.name), entry.name)
 
+def sort_existing_files():
+    with os.scandir(source_dir) as entries:
+        for entry in entries:
+            if entry.is_file():
+                file_extension = os.path.splitext(entry.name)[1].lower()
+                dest_dir = None
+
+                for folder, extensions in dest_dirs.items():
+                    if file_extension in extensions:
+                        dest_dir = os.path.join(sorted_files_dir, folder)
+                        break
+                
+                if dest_dir:
+                    move_file(dest_dir, os.path.join(source_dir, entry.name), entry.name)
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S')
+
+    sort_existing_files()
+
     path = source_dir
     event_handler = MyEventHandler()
     observer = Observer()
     observer.schedule(event_handler, path, recursive=True)
     observer.start()
+    
     try:
         while True:
-            time.sleep(10)
+            time.sleep(1)
     except KeyboardInterrupt:
         observer.stop()
     observer.join()
